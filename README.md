@@ -21,7 +21,7 @@ Simple run `./main.py` or `./bash.sh` demo to implement the fusion of low-resolu
 ## References
 If you find this code helpful, please kindly cite:
 
-[1] Wang, He, et al. "Unsupervised Hyperspectral and Multispectral Image Blind Fusion Based on Deep Tucker Decomposition Network with Spatial-Spectral Manifold Learning." In *IEEE Transactions on Neural Network and Learning System* (2024), DOI:10.1109/TNNLS.2024.3457781.
+[1] Wang, He, et al. "Unsupervised Hyperspectral and Multispectral Image Blind Fusion Based on Deep Tucker Decomposition Network With Spatial–Spectral Manifold Learning." in *IEEE Transactions on Neural Networks and Learning Systems*, vol. 36, no. 7, pp. 12721-12735, July 2025, doi: 10.1109/TNNLS.2024.3457781.
 
 
 ## Citation Details
@@ -30,10 +30,10 @@ If you find this code helpful, please kindly cite:
   author={Wang, He and Xu, Yang and Wu, Zebin and Wei, Zhihui},
   journal={IEEE Transactions on Neural Networks and Learning Systems}, 
   title={Unsupervised Hyperspectral and Multispectral Image Blind Fusion Based on Deep Tucker Decomposition Network With Spatial–Spectral Manifold Learning}, 
-  year={2024},
-  volume={},
-  number={},
-  pages={1-15},
+  year={2025},
+  volume={36},
+  number={7},
+  pages={12721-12735},
   keywords={Tensors;Matrix decomposition;Feature extraction;Hyperspectral imaging;Superresolution;Manifold learning;Convolutional neural networks;Sparse matrices;Mathematical models;Decoding;Blind fusion;deep Tucker decomposition;hyperspectral image (HSI);manifold learning},
   doi={10.1109/TNNLS.2024.3457781}
 }
