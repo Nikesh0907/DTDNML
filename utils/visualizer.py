@@ -115,6 +115,11 @@ class Visualizer():
         if not os.path.exists(opt.checkpoints_dir):
             os.makedirs(opt.checkpoints_dir)
 
+        # ensure experiment subdirectory exists
+        exp_dir = os.path.join(opt.checkpoints_dir, opt.name)
+        if not os.path.exists(exp_dir):
+            os.makedirs(exp_dir)
+
         self.log_name = os.path.join(opt.checkpoints_dir, opt.name, 'loss_log.txt')
         self.precision_path = os.path.join(opt.checkpoints_dir, opt.name, 'precision.txt')
         self.save_psnr_sam_path = os.path.join(opt.checkpoints_dir, opt.name, "psnr_and_sam.pickle")
