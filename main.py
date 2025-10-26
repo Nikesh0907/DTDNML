@@ -179,9 +179,13 @@ if __name__ == "__main__":
         #     rec_hhsi = train_model.get_current_visuals()[
         #             train_model.get_visual_corresponding_name()['real_hhsi']].data.cpu().float().numpy()[0]
         #     sio.savemat(os.path.join("./Results/pavia_cat_3/", ''.join(data['name']) + '_epoch_10000.mat'), {'out': rec_hhsi.transpose(1, 2, 0)})
+    # ensure results directory exists before saving final .mat
+    results_dir = os.path.join("./checkpoints", train_opt.name, "results")
+    os.makedirs(results_dir, exist_ok=True)
     rec_hhsi = train_model.get_current_visuals()[
         train_model.get_visual_corresponding_name()['real_hhsi']].data.cpu().float().numpy()[0]
-    sio.savemat(os.path.join("./checkpoints/" + train_opt.name  + "/results/", ''.join(data['name']) + '_' + str(epoch) + '.mat'), {'out': rec_hhsi.transpose(1, 2, 0)})
+    out_path = os.path.join(results_dir, ''.join(data['name']) + '_' + str(epoch) + '.mat')
+    sio.savemat(out_path, {'out': rec_hhsi.transpose(1, 2, 0)})
     # sio.savemat(os.path.join("./Results/" + train_opt.name  + "/", ''.join(data['name']) + '.mat'), {'out': rec_hhsi.transpose(1, 2, 0)})
 
     print('full time %d sec' % (time.time() - start_time))
