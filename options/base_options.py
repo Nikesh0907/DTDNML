@@ -12,8 +12,8 @@ class BaseOptions():
         # data
         parser.add_argument('--name', type=str, default='experiment_name', help='name of the experiment. It decides where to store samples and models')
         parser.add_argument("--data_name", type=str, default='cave')
-    parser.add_argument("--mat_name", type=str, default='', help='base name of the .mat file (without extension)')
-    parser.add_argument("--srf_name", type=str, default='', help='base name of the spectral response .xls (without extension)')
+        parser.add_argument("--mat_name", type=str, default='', help='base name of the .mat file (without extension)')
+        parser.add_argument("--srf_name", type=str, default='', help='base name of the spectral response .xls (without extension)')
         parser.add_argument("--scale_factor", type=int, default=8, help='4,8')
         # gpu
         parser.add_argument("--gpu_ids", type=str, default='-1', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
