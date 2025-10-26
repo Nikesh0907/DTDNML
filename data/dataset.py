@@ -23,16 +23,12 @@ class Dataset(data.Dataset):
 
         default_datapath = os.getcwd()
         data_folder = os.path.join(default_datapath, args.data_name)
-        if os.path.exists(data_folder):
-            for root, dirs, files in os.walk(data_folder):
-                if args.mat_name in files:
-                    raise Exception("HSI data path does not exist!")
-                else:
-                    data_path = os.path.join(data_folder, args.mat_name + ".mat")
-        else:
-            return 0
+        data_path = os.path.join(data_folder, args.mat_name + ".mat")
+        if not os.path.isfile(data_path):
+            raise Exception(f"HSI data path does not exist: {data_path}")
 
-        self.imgpath_list = sorted(glob.glob(data_path))
+        # single-image dataset: keep a list for consistency
+        self.imgpath_list = [data_path]
         self.img_list = []
         for i in range(len(self.imgpath_list)):
             self.img_list.append(io.loadmat(self.imgpath_list[i])["img"]) # [0:96,0:96,:]
