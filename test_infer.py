@@ -9,76 +9,10 @@ import argparse
 import numpy as np
 import scipy.io as sio
 from tqdm import tqdm
-from skimage.metrics import structural_similarity as ssim
-
 from options.train_options import TrainOptions
 from data import get_dataloader
 from model import create_model
-
-
-def rmse(img_ref, img_rec):
-    return np.sqrt(np.mean((img_ref - img_rec) ** 2))
-
-
-def psnr(img_ref, img_rec, data_range=1.0):
-    mse = np.mean((img_ref - img_rec) ** 2)
-    if mse == 0:
-        return float('inf')
-    return 20.0 * np.log10(data_range) - 10.0 * np.log10(mse)
-
-
-def sam(img_ref, img_rec):
-    f = img_ref.reshape(-1, img_ref.shape[-1])
-    g = img_rec.reshape(-1, img_rec.shape[-1])
-    dot = np.sum(f * g, axis=1)
-    fn = np.linalg.norm(f, axis=1)
-    gn = np.linalg.norm(g, axis=1)
-    cos = np.clip(dot / (fn * gn + 1e-12), -1.0, 1.0)
-    ang = np.arccos(cos)
-    return np.mean(ang) * (180.0 / np.pi)
-
-
-def ergas(img_ref, img_rec, ratio):
-    B = img_ref.shape[-1]
-    rmse_b = np.sqrt(np.mean((img_ref - img_rec) ** 2, axis=(0, 1)))
-    mean_b = np.mean(img_ref, axis=(0, 1))
-    val = np.mean((rmse_b / (mean_b + 1e-12)) ** 2)
-    return 100.0 * (1.0 / ratio) * np.sqrt(val)
-
-
-def uiqi(img_ref, img_rec):
-    H, W, B = img_ref.shape
-    uiqi_list = []
-    for b in range(B):
-        x = img_ref[..., b].ravel()
-        y = img_rec[..., b].ravel()
-        mx = x.mean(); my = y.mean()
-        vx = ((x - mx) ** 2).mean()
-        vy = ((y - my) ** 2).mean()
-        cov = ((x - mx) * (y - my)).mean()
-        denom = vx + vy + 1e-12
-        uiqi_list.append((2.0 * cov) / denom)
-    return float(np.mean(uiqi_list))
-
-
-def evaluate_pair(gt, rec, scale_factor):
-    gt = np.clip(gt, 0.0, 1.0).astype(np.float32)
-    rec = np.clip(rec, 0.0, 1.0).astype(np.float32)
-    metrics = {}
-    metrics['RMSE'] = rmse(gt, rec)
-    metrics['PSNR'] = psnr(gt, rec, data_range=1.0)
-    metrics['SAM'] = sam(gt, rec)
-    metrics['ERGAS'] = ergas(gt, rec, scale_factor)
-    B = gt.shape[-1]
-    ssim_list = []
-    for b in range(B):
-        try:
-            ssim_list.append(ssim(gt[..., b], rec[..., b], data_range=1.0))
-        except Exception:
-            ssim_list.append(0.0)
-    metrics['SSIM'] = float(np.mean(ssim_list))
-    metrics['UIQI'] = uiqi(gt, rec)
-    return metrics
+from utils.metrics import evaluate_pair
 
 
 def main():
