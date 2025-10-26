@@ -8,9 +8,21 @@ import torch
 from .dataset import Dataset
 
 def get_spectral_response(data_name, srf_name):
-    xls_path = os.path.join(os.getcwd(), data_name, srf_name + '.xls')
-    if not os.path.exists(xls_path):
-        raise Exception("Spectral response path does not exist!")
+    # Try multiple candidate paths to be robust across working directories
+    cwd = os.getcwd()
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    candidates = [
+        os.path.join(cwd, data_name, srf_name + '.xls'),
+        os.path.join(repo_root, data_name, srf_name + '.xls'),
+    ]
+    xls_path = None
+    for p in candidates:
+        if os.path.exists(p):
+            xls_path = p
+            break
+    if xls_path is None:
+        raise Exception(f"Spectral response path does not exist! Tried: {candidates}")
+
     data = xlrd.open_workbook(xls_path)
     table = data.sheets()[0]
     num_cols = table.ncols
