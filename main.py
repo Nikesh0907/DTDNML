@@ -48,11 +48,15 @@ if __name__ == "__main__":
     # train_opt.srf_name = "ksc"  # 'Landsat8_BGR'
     # train_opt.mat_name = "KSC"
 
-    """Sandiego"""
-    train_opt.name = 'sandiego_scale_8'
-    train_opt.data_name = "sandiego"
-    train_opt.srf_name = "sandiego"  # 'Landsat8_BGR'
-    train_opt.mat_name = "Sandiego"
+    """Dataset selection
+    Respect CLI overrides: only set defaults if user didn't pass values.
+    """
+    if train_opt.data_name in (None, '', 'cave'):
+        # Default example: Sandiego (kept for backward compatibility)
+        train_opt.name = 'sandiego_scale_8'
+        train_opt.data_name = "sandiego"
+        train_opt.srf_name = "sandiego"  # 'Landsat8_BGR'
+        train_opt.mat_name = "Sandiego"
 
     """chikusei"""
     # train_opt.name = 'chikusei_scale_8'
