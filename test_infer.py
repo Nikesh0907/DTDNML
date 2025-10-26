@@ -115,11 +115,35 @@ def main():
                          dataloader.lrhsi_height, dataloader.lrhsi_width,
                          dataloader.sp_matrix, dataloader.sp_range)
     model.setup(opt)
-    # attempt to load networks
-    try:
-        model.load_networks(opt.which_epoch)
-    except Exception as e:
-        print('Failed to load networks:', e)
+    # attempt to load networks; if 'latest' not present, fallback to highest epoch found
+    def _try_load(which):
+        try:
+            model.load_networks(which)
+            return True
+        except Exception as e:
+            print('Failed to load networks:', e)
+            return False
+
+    loaded = _try_load(opt.which_epoch)
+    if not loaded:
+        # scan checkpoint dir for numbered epochs and pick the max
+        ckpt_dir = os.path.join('./checkpoints', opt.name)
+        if os.path.isdir(ckpt_dir):
+            import re
+            epochs = []
+            for fn in os.listdir(ckpt_dir):
+                m = re.match(r'^(\d+)_net_.*\\.pth$', fn)
+                if not m:
+                    m = re.match(r'^(\d+)_net_.*\.pth$', fn)
+                if m:
+                    try:
+                        epochs.append(int(m.group(1)))
+                    except Exception:
+                        pass
+            if epochs:
+                best = str(max(epochs))
+                print('Auto-selecting checkpoint epoch', best)
+                _try_load(best)
 
     results_dir = os.path.join('./checkpoints', opt.name, 'results_eval')
     os.makedirs(results_dir, exist_ok=True)

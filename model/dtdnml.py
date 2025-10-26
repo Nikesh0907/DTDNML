@@ -69,7 +69,16 @@ class DTDNML(BaseModel):
     ):
         BaseModel.initialize(self, opt)
         self.opt = opt
-        self.visual_names = ["real_lhsi", "rec_lr_lr"]
+        # visuals to expose for logging/evaluation
+        # real_* are always present after set_input; rec_* are produced in my_forward
+        self.visual_names = [
+            "real_lhsi",
+            "real_hmsi",
+            "real_hhsi",
+            "rec_lrhsi",
+            "rec_hrmsi",
+            "rec_hrhsi",
+        ]
         num_s = self.opt.num_theta
         ngf = 64
         
