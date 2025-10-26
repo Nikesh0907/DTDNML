@@ -113,6 +113,16 @@ class BaseModel():
                 else:
                     torch.save(net.cpu().state_dict(), save_path)
 
+                # also update a 'latest' checkpoint alias for convenience
+                latest_filename = 'latest_net_%s.pth' % (name)
+                latest_path = os.path.join(self.save_dir, latest_filename)
+                # save the same state dict to latest_* so evaluators can load it directly
+                state_dict = net.cpu().state_dict()
+                torch.save(state_dict, latest_path)
+                # move back to gpu if needed
+                if len(self.gpu_ids) > 0 and torch.cuda.is_available():
+                    net.cuda(self.gpu_ids[0])
+
     def __patch_instance_norm_state_dict(self, state_dict, module, keys, i=0):
         key = keys[i]
         if i + 1 == len(keys):  # at the end, pointing to a parameter/buffer

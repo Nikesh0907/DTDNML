@@ -88,6 +88,11 @@ if __name__ == "__main__":
     # # train_opt.mat_name = 'fake_and_real_beers_ms'
     # train_opt.mat_name = 'feathers_ms'
     
+    # If user didn't specify a name, auto-name based on dataset/scale for consistency
+    if not getattr(train_opt, 'name', None) or train_opt.name == 'experiment_name':
+        if train_opt.data_name:
+            train_opt.name = f"{train_opt.data_name}_scale_{train_opt.scale_factor}"
+
     # Allow CLI to control schedule; compute which_epoch from current schedule
     train_opt.which_epoch = train_opt.niter + train_opt.niter_decay
     # train_opt.which_epoch = 20000
