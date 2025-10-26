@@ -60,6 +60,8 @@ class DTDNML(BaseModel):
             parser.add_argument("--num_theta", type=int, default=64)
             parser.add_argument("--avg_crite", type=str, default="No")
             parser.add_argument("--isCalSP", type=str, default="Yes")
+        # model architecture switch usable in both train and test
+            parser.add_argument("--concat", type=str, default="Yes", help="'Yes' to use concatenated features; 'No' to use LR-only dictionaries")
         return parser
 
     def initialize(
