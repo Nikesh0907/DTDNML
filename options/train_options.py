@@ -20,6 +20,7 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--save_epoch_freq', type=int, default=20, help='frequency of saving checkpoints at the end of epochs')
     # custom save frequency used in main.py for periodic saving
         parser.add_argument('--save_freq', type=int, default=100, help='frequency (in epochs) to save networks during training loop')
+        parser.add_argument('--quick_test', action='store_true', help='enable a very short run (few epochs) to sanity-check the pipeline')
 
         # visualizer
         parser.add_argument('--display_freq', type=int, default=50, help='frequency of showing training results on screen')

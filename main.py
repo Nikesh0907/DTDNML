@@ -35,12 +35,6 @@ if __name__ == "__main__":
     start_time = time.time()
 
     train_opt = TrainOptions().parse()
-
-    train_opt.niter = 3000
-    train_opt.niter_decay = 7000
-    train_opt.lr = 5e-3
-    train_opt.lr_decay_iters = 1000
-    train_opt.display_port = 8097
     
     """KSC"""
     # train_opt.name = 'ksc_scale_8'
@@ -94,26 +88,20 @@ if __name__ == "__main__":
     # # train_opt.mat_name = 'fake_and_real_beers_ms'
     # train_opt.mat_name = 'feathers_ms'
     
-    train_opt.scale_factor = 8
-    train_opt.num_theta = 30
-    train_opt.print_freq = 100
-    train_opt.save_freq = 100
-    train_opt.batchsize = 1
+    # Allow CLI to control schedule; compute which_epoch from current schedule
     train_opt.which_epoch = train_opt.niter + train_opt.niter_decay
     # train_opt.which_epoch = 20000
     # train_opt.continue_train = True
-    train_opt.attention_use = True
-    train_opt.useSoftmax = 'No'
-    train_opt.isCalSP = 'Yes'
-    train_opt.concat = 'Yes'
-    train_opt.display_port = 8097
+    # quick sanity mode: drastically reduce epochs and increase logging
+    if hasattr(train_opt, 'quick_test') and train_opt.quick_test:
+        train_opt.niter = 1
+        train_opt.niter_decay = 0
+        train_opt.print_freq = 1
+        train_opt.save_freq = 1
 
     # trade-off parameters: could be better tuned
     # for auto-reconstruction
-    train_opt.lambda_A = 0.1
-    train_opt.lambda_B = 0 # 1e-3 # 1e-2 # spectral manifold
-    train_opt.lambda_C = 0 # 1e-4 # 1e-3 # spatial manifold
-    train_opt.lambda_F = 100
+    # keep trade-off parameters as-is (set via defaults/CLI)
 
     train_dataloader = get_dataloader(train_opt, isTrain=True)
     dataset_size = len(train_dataloader)
