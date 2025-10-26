@@ -62,6 +62,11 @@ class DTDNML(BaseModel):
             parser.add_argument("--isCalSP", type=str, default="Yes")
         # model architecture switch usable in both train and test
             parser.add_argument("--concat", type=str, default="Yes", help="'Yes' to use concatenated features; 'No' to use LR-only dictionaries")
+        # training stability knobs
+        parser.add_argument("--warmup_rec_epochs", type=int, default=0, help="epochs to use only reconstruction loss before enabling consistency/constraints")
+        parser.add_argument("--enable_orthg_after", type=int, default=0, help="epoch after which to enable orthogonal reconstruction losses")
+        parser.add_argument("--enable_manifold_after", type=int, default=0, help="epoch after which to enable manifold regularization losses")
+        parser.add_argument("--grad_clip", type=float, default=0.0, help="max grad norm for clipping; 0 disables")
         return parser
 
     def initialize(
@@ -350,51 +355,65 @@ class DTDNML(BaseModel):
         # Reconstruct loss
         # lrhsi-1
         self.loss_lr_pixelwise = self.L1loss(self.real_lhsi, self.rec_lrhsi)
-        # self.loss_lr_orthg = self.L1loss(self.real_lhsi, self.rec_lrhsi_orthg)
         # hrmsi-1
         self.loss_msi_pixelwise = self.L1loss(self.real_hmsi, self.rec_hrmsi)
-        # self.loss_msi_orthg = self.L1loss(self.real_hmsi, self.rec_hrmsi_orthg)
         # Rec loss
         self.loss_rec = self.loss_msi_pixelwise + self.loss_lr_pixelwise
-        # self.loss_rec_orthg = self.loss_msi_orthg + self.loss_lr_orthg
 
-        # Constraints loss
-        # hrhsi to lrhsi: Learn the PSF
+        # Constraints loss (PSF/SRF consistency). Optionally warm up before enabling.
         self.loss_msi_ss_lr = self.L1loss(self.real_lhsi, self.rec_hsi_lrhsi)
-        # hrhsi to hrmsi: Learn the SRF
         self.loss_msi_ss_msi = self.L1loss(self.real_hmsi, self.rec_hsi_hrmsi)
-        # lrmsi: Lean the PSF and SRF
         self.loss_lrmsi_pixelwise = (
             self.L1loss(self.rec_lrhsi_lrmsi, self.rec_hrmsi_lrmsi) * self.opt.lambda_D
         )
-        # Consistance loss
         self.loss_cons = (
             self.loss_msi_ss_lr + self.loss_msi_ss_msi + self.loss_lrmsi_pixelwise
         )
-        # self.loss_cons = self.loss_lrmsi_pixelwise
+        cons_enabled = (epoch >= getattr(self.opt, 'warmup_rec_epochs', 0))
 
         # if epoch > 3000:
         # unwrap DataParallel if present
         def _unwrap(m):
             return m.module if hasattr(m, 'module') else m
 
+        # Defaults when disabled
+        self.loss_lr_orthg = torch.tensor(0.0, device=self.device)
+        self.loss_msi_orthg = torch.tensor(0.0, device=self.device)
+        self.loss_rec_orthg = torch.tensor(0.0, device=self.device)
+        self.loss_manifold = torch.tensor(0.0, device=self.device)
+        self.loss_manifold_spm1 = torch.tensor(0.0, device=self.device)
+        self.loss_manifold_spm2 = torch.tensor(0.0, device=self.device)
+        self.loss_manifold_spa = torch.tensor(0.0, device=self.device)
+
         lr_wh = _unwrap(self.lr_hsi_dict_wh)
         lr_s  = _unwrap(self.lr_hsi_dict_s)
         hr_wh = _unwrap(self.hr_msi_dict_wh)
         hr_s  = _unwrap(self.hr_msi_dict_s)
-        # psf2 = _unwrap(self.psf_2)
-        # srf  = _unwrap(self.srf)
 
-        h = lr_wh.conv_h.weight.permute(2, 3, 0, 1).squeeze()
-        w = lr_wh.conv_w.weight.permute(2, 3, 0, 1).squeeze()
-        V = lr_s.conv_s.weight.permute(2, 3, 0, 1).squeeze()
+        # Enable orthogonal reconstruction after a chosen epoch
+        if epoch >= getattr(self.opt, 'enable_orthg_after', 0):
+            h = lr_wh.conv_h.weight.permute(2, 3, 0, 1).squeeze()
+            w = lr_wh.conv_w.weight.permute(2, 3, 0, 1).squeeze()
+            V = lr_s.conv_s.weight.permute(2, 3, 0, 1).squeeze()
 
-        self.rec_lrhsi_orthg = chain_mode_product(chain_mode_product(self.real_lhsi, [V,h,w]), [V.t(),h.t(),w.t()])
-        self.loss_lr_orthg = self.L1loss(self.real_lhsi, self.rec_lrhsi_orthg)
-        
-        # print(V)
-        # print(self.rec_hrhsi)
-        self.loss_manifold = torch.trace(torch.matmul(torch.matmul(V.T, self.manifold.squeeze().to(device=self.device)), V))
+            self.rec_lrhsi_orthg = chain_mode_product(chain_mode_product(self.real_lhsi, [V, h, w]), [V.t(), h.t(), w.t()])
+            self.loss_lr_orthg = self.L1loss(self.real_lhsi, self.rec_lrhsi_orthg)
+
+            H = hr_wh.conv_h.weight.permute(2, 3, 0, 1).squeeze()
+            W = hr_wh.conv_w.weight.permute(2, 3, 0, 1).squeeze()
+            v = hr_s.conv_s.weight.permute(2, 3, 0, 1).squeeze()
+
+            self.rec_hrmsi_orthg = chain_mode_product(chain_mode_product(self.real_hmsi, [v, H, W]), [v.t(), H.t(), W.t()])
+            self.loss_msi_orthg = self.L1loss(self.real_hmsi, self.rec_hrmsi_orthg)
+            
+            self.loss_rec_orthg = self.loss_msi_orthg + self.loss_lr_orthg
+
+            # Manifold losses (optional): enable after a chosen epoch
+            if epoch >= getattr(self.opt, 'enable_manifold_after', 0):
+                self.loss_manifold = torch.trace(torch.matmul(torch.matmul(V.T, self.manifold.squeeze().to(device=self.device)), V))
+                self.loss_manifold_spm1 = torch.trace(torch.matmul(torch.matmul(H.T, self.manifold_sh.squeeze().to(device=self.device)), H))
+                self.loss_manifold_spm2 = torch.trace(torch.matmul(torch.matmul(W.T, self.manifold_sw.squeeze().to(device=self.device)), W))
+                self.loss_manifold_spa = self.loss_manifold_spm1 + self.loss_manifold_spm2
 
         # Hz=torch.reshape(self.rec_lrhsi.permute(0,2,3,1).squeeze(), [self.rec_lrhsi.size(2)**2, self.rec_lrhsi.size(1)])
         # self.loss_manifold = torch.trace(torch.matmul(torch.matmul(Hz, self.manifold.squeeze().to(device=self.device)), Hz.T))
@@ -439,15 +458,16 @@ class DTDNML(BaseModel):
         # self.loss_manifold_spm2 = torch.trace(torch.matmul(torch.matmul(Mz2, self.manifold_sw.squeeze().to(device=self.device)), Mz2.T))
         
 
-        self.loss_manifold_spa = self.loss_manifold_spm1 + self.loss_manifold_spm2 # self.loss_manifold + self.loss_manifold_spm1 + self.loss_manifold_spm2
-        
-        self.loss_joint = (
-            self.loss_rec
-            + self.loss_rec_orthg
-            + self.loss_cons * self.opt.lambda_A
-            + self.loss_manifold_spa * self.opt.lambda_C
-            + self.loss_manifold * self.opt.lambda_B
-        ) 
+        # Assemble joint loss with staged enables
+        self.loss_joint = self.loss_rec
+        # consistency losses after warmup
+        if cons_enabled:
+            self.loss_joint = self.loss_joint + self.loss_cons * self.opt.lambda_A
+        # orthogonal and manifold as configured
+        if epoch >= getattr(self.opt, 'enable_orthg_after', 0):
+            self.loss_joint = self.loss_joint + self.loss_rec_orthg
+        if epoch >= getattr(self.opt, 'enable_manifold_after', 0):
+            self.loss_joint = self.loss_joint + self.loss_manifold_spa * self.opt.lambda_C + self.loss_manifold * self.opt.lambda_B
         self.loss_joint.backward(retain_graph=False)
 
     def optimize_joint_parameters(self, epoch):
@@ -517,6 +537,23 @@ class DTDNML(BaseModel):
             self.optimizer_srf.zero_grad()
 
         self.my_backward_g_joint(epoch)
+
+        # optional gradient clipping for stability
+        if getattr(self.opt, 'grad_clip', 0.0) and self.opt.grad_clip > 0:
+            import torch.nn.utils as nn_utils
+            nets_to_clip = [
+                self.lrhsi_feature,
+                self.hrmsi_feature,
+                self.fearture_unet,
+                self.lr_hsi_dict_s,
+                self.lr_hsi_dict_wh,
+                self.hr_msi_dict_wh,
+                self.hr_msi_dict_s,
+                self.psf_2,
+                self.srf,
+            ]
+            for net in nets_to_clip:
+                nn_utils.clip_grad_norm_(net.parameters(), max_norm=self.opt.grad_clip)
 
         self.optimizer_lrhsi_feature.step()
         self.optimizer_lr_hsi_dict_wh.step()
