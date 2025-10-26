@@ -299,8 +299,8 @@ class DTDNML(BaseModel):
         # hr-hsi 重构 lrhsi和hrmsi
         # self.rec_hsi_lrhsi = self.lr_hsi_dict_s(self.psf_2(self.hr_msi_dict_wh(self.code_tensor)))
         # self.rec_hsi_hrmsi = self.hr_msi_dict_wh(self.srf(self.lr_hsi_dict_s(self.code_tensor)))
-    self.rec_hsi_lrhsi = self.psf_2(self.rec_hrhsi)
-    self.rec_hsi_hrmsi = self.srf(self.rec_hrhsi)
+        self.rec_hsi_lrhsi = self.psf_2(self.rec_hrhsi)
+        self.rec_hsi_hrmsi = self.srf(self.rec_hrhsi)
 
         # 构建lr-msi
         self.rec_lrhsi_lrmsi = self.srf(self.real_lhsi)
