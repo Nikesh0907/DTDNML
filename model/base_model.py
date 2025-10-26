@@ -149,6 +149,9 @@ class BaseModel():
                 # if you are using PyTorch newer than 0.4 (e.g., built from
                 # GitHub source), you can remove str() on self.device
                 state_dict = torch.load(load_path, map_location=str(self.device))
+                # handle DataParallel checkpoints on single-GPU/CPU: strip 'module.' prefix
+                if any(k.startswith('module.') for k in state_dict.keys()):
+                    state_dict = {k[len('module.'):]: v for k, v in state_dict.items()}
                 if hasattr(state_dict, '_metadata'):
                     del state_dict._metadata
 
