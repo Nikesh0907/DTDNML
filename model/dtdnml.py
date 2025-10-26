@@ -299,12 +299,26 @@ class DTDNML(BaseModel):
         # hr-hsi 重构 lrhsi和hrmsi
         # self.rec_hsi_lrhsi = self.lr_hsi_dict_s(self.psf_2(self.hr_msi_dict_wh(self.code_tensor)))
         # self.rec_hsi_hrmsi = self.hr_msi_dict_wh(self.srf(self.lr_hsi_dict_s(self.code_tensor)))
-        self.rec_hsi_lrhsi = self.psf_2(self.rec_hrhsi)
-        self.rec_hsi_hrmsi = self.srf(self.rec_hrhsi)
+    self.rec_hsi_lrhsi = self.psf_2(self.rec_hrhsi)
+    self.rec_hsi_hrmsi = self.srf(self.rec_hrhsi)
 
         # 构建lr-msi
         self.rec_lrhsi_lrmsi = self.srf(self.real_lhsi)
         self.rec_hrmsi_lrmsi = self.psf_2(self.real_hmsi)
+
+        # Align HW orientation if any reconstructed output has swapped dims
+        def _align_hw(ref, pred):
+            # ref, pred: (B, C, H, W)
+            if ref.size(2) == pred.size(3) and ref.size(3) == pred.size(2):
+                return pred.permute(0, 1, 3, 2)
+            return pred
+
+        self.rec_lrhsi = _align_hw(self.real_lhsi, self.rec_lrhsi)
+        self.rec_hrmsi = _align_hw(self.real_hmsi, self.rec_hrmsi)
+        self.rec_hrhsi = _align_hw(self.real_hhsi, self.rec_hrhsi)
+        self.rec_hsi_lrhsi = _align_hw(self.real_lhsi, self.rec_hsi_lrhsi)
+        self.rec_hsi_hrmsi = _align_hw(self.real_hmsi, self.rec_hsi_hrmsi)
+        self.rec_lrhsi_lrmsi = _align_hw(self.rec_hrmsi_lrmsi, self.rec_lrhsi_lrmsi)
 
         self.visual_corresponding_name["real_lhsi"] = "rec_lrhsi"
         self.visual_corresponding_name["real_hmsi"] = "rec_hrmsi"
