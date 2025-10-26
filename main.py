@@ -180,6 +180,9 @@ if __name__ == "__main__":
         # epoch, train_opt.niter + train_opt.niter_decay, time.time() - epoch_start_time))
 
         train_model.update_learning_rate()
+        # save networks periodically so we can load for evaluation
+        if epoch % train_opt.save_freq == 0:
+            train_model.save_networks(epoch)
         # if epoch == 10000:
         #     rec_hhsi = train_model.get_current_visuals()[
         #             train_model.get_visual_corresponding_name()['real_hhsi']].data.cpu().float().numpy()[0]
