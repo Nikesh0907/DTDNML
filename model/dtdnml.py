@@ -363,9 +363,20 @@ class DTDNML(BaseModel):
         # self.loss_cons = self.loss_lrmsi_pixelwise
 
         # if epoch > 3000:
-        h = self.lr_hsi_dict_wh.module.conv_h.weight.permute(2, 3, 0, 1).squeeze()
-        w = self.lr_hsi_dict_wh.module.conv_w.weight.permute(2, 3, 0, 1).squeeze()
-        V = self.lr_hsi_dict_s.module.conv_s.weight.permute(2, 3, 0, 1).squeeze()
+        # unwrap DataParallel if present
+        def _unwrap(m):
+            return m.module if hasattr(m, 'module') else m
+
+        lr_wh = _unwrap(self.lr_hsi_dict_wh)
+        lr_s  = _unwrap(self.lr_hsi_dict_s)
+        hr_wh = _unwrap(self.hr_msi_dict_wh)
+        hr_s  = _unwrap(self.hr_msi_dict_s)
+        # psf2 = _unwrap(self.psf_2)
+        # srf  = _unwrap(self.srf)
+
+        h = lr_wh.conv_h.weight.permute(2, 3, 0, 1).squeeze()
+        w = lr_wh.conv_w.weight.permute(2, 3, 0, 1).squeeze()
+        V = lr_s.conv_s.weight.permute(2, 3, 0, 1).squeeze()
 
         self.rec_lrhsi_orthg = chain_mode_product(chain_mode_product(self.real_lhsi, [V,h,w]), [V.t(),h.t(),w.t()])
         self.loss_lr_orthg = self.L1loss(self.real_lhsi, self.rec_lrhsi_orthg)
@@ -377,9 +388,9 @@ class DTDNML(BaseModel):
         # Hz=torch.reshape(self.rec_lrhsi.permute(0,2,3,1).squeeze(), [self.rec_lrhsi.size(2)**2, self.rec_lrhsi.size(1)])
         # self.loss_manifold = torch.trace(torch.matmul(torch.matmul(Hz, self.manifold.squeeze().to(device=self.device)), Hz.T))
 
-        H = self.hr_msi_dict_wh.module.conv_h.weight.permute(2, 3, 0, 1).squeeze()
-        W = self.hr_msi_dict_wh.module.conv_w.weight.permute(2, 3, 0, 1).squeeze()
-        v = self.hr_msi_dict_s.module.conv_s.weight.permute(2, 3, 0, 1).squeeze()
+    H = hr_wh.conv_h.weight.permute(2, 3, 0, 1).squeeze()
+    W = hr_wh.conv_w.weight.permute(2, 3, 0, 1).squeeze()
+    v = hr_s.conv_s.weight.permute(2, 3, 0, 1).squeeze()
 
         self.rec_hrmsi_orthg = chain_mode_product(chain_mode_product(self.real_hmsi, [v,H,W]), [v.t(),H.t(),W.t()])
         self.loss_msi_orthg = self.L1loss(self.real_hmsi, self.rec_hrmsi_orthg)
